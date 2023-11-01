@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34221.43
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utapoi.Auth", "Utapoi.Auth\Utapoi.Auth.csproj", "{EF12DCFB-6E88-4B66-99AB-A9A2CAE9B367}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF12DCFB-6E88-4B66-99AB-A9A2CAE9B367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF12DCFB-6E88-4B66-99AB-A9A2CAE9B367}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF12DCFB-6E88-4B66-99AB-A9A2CAE9B367}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF12DCFB-6E88-4B66-99AB-A9A2CAE9B367}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {232C6102-5DEE-4A85-9DBB-8C065D12F998}
+	EndGlobalSection
+EndGlobal
