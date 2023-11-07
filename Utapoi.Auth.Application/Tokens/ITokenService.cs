@@ -10,6 +10,8 @@ namespace Utapoi.Auth.Application.Tokens;
 /// </summary>
 public interface ITokenService
 {
+    Result Validate(string token);
+
     /// <summary>
     ///     Gets the token for the specified username.
     /// </summary>

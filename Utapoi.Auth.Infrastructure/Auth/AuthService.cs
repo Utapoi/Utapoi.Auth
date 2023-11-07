@@ -4,7 +4,7 @@ using Utapoi.Auth.Application.Auth;
 using Utapoi.Auth.Application.Auth.Commands.LogIn;
 using Utapoi.Auth.Application.Auth.Commands.Register;
 using Utapoi.Auth.Application.Tokens;
-using Utapoi.Auth.Core.Entities;
+using Utapoi.Auth.Core.Entities.Identity;
 
 namespace Utapoi.Auth.Infrastructure.Auth;
 
@@ -38,6 +38,7 @@ public sealed class AuthService : IAuthService
     public async Task<Result<LogIn.Response>> LogInAsync(
         string username,
         string password,
+        string ipAddress,
         CancellationToken cancellationToken = default
     )
     {
@@ -55,11 +56,23 @@ public sealed class AuthService : IAuthService
             return Result.Fail<LogIn.Response>("Invalid password.");
         }
 
+        var t = await _tokenService.GetTokenAsync(username, ipAddress, cancellationToken);
+
+        if (!t.IsSuccess)
+        {
+            return Result.Fail<LogIn.Response>(t.Errors.First().Message);
+        }
+
         return Result.Ok(new LogIn.Response
         {
             Id = user.Id,
             Email = user.Email ?? string.Empty,
             Username = user.UserName ?? user.Email ?? string.Empty,
+            Roles = Array.Empty<string>(), // TODO: Implement roles
+            Token = t.Value.Token,
+            RefreshToken = t.Value.RefreshToken,
+            TokenExpiration = t.Value.TokenExpiryTime,
+            RefreshTokenExpiration = t.Value.RefreshTokenExpiryTime,
         });
     }
 
@@ -88,12 +101,21 @@ public sealed class AuthService : IAuthService
             return Result.Fail<Register.Response>(result.Errors.First().Description);
         }
 
+        var t = await _tokenService.GetTokenAsync(username, ipAddress, cancellationToken);
+
+        if (!t.IsSuccess)
+        {
+            return Result.Fail<Register.Response>(t.Errors.First().Message);
+        }
+
         return Result.Ok(new Register.Response
         {
             Id = user.Id,
             Email = user.Email ?? string.Empty,
             Username = user.UserName ?? user.Email ?? string.Empty,
             Roles = Array.Empty<string>(), // TODO: Implement roles
+            Token = t.Value.Token,
+            RefreshToken = t.Value.RefreshToken,
         });
     }
 

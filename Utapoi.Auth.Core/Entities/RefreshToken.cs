@@ -1,4 +1,5 @@
 ﻿using Utapoi.Auth.Core.Entities.Common;
+using Utapoi.Auth.Core.Entities.Identity;
 
 namespace Utapoi.Auth.Core.Entities;
 

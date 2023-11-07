@@ -10,6 +10,10 @@ public static partial class Register
 
         public string Username { get; set; } = string.Empty;
 
+        public string Token {get; set; } = string.Empty;
+
+        public string RefreshToken { get; set; } = string.Empty;
+
         public IReadOnlyCollection<string> Roles { get; set; } = Array.Empty<string>();
     }
 }

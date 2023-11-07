@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +10,21 @@ namespace Utapoi.Auth.Controllers;
 
 public class AuthController : ApiControllerBase
 {
+    private readonly IAntiforgery _antiforgery;
+
+    public AuthController(IAntiforgery antiforgery)
+    {
+        _antiforgery = antiforgery;
+    }
+
+    [HttpGet("Verify")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult ValidateAsync()
+    {
+        return Ok();
+    }
+
     [HttpPost("LogIn")]
     [ProducesResponseType(typeof(LogIn.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -30,15 +45,23 @@ public class AuthController : ApiControllerBase
             return BadRequest(result.Errors.First().Message);
         }
 
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            CreateClaims(result.Value),
-            new AuthenticationProperties
+        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+
+        if (string.IsNullOrWhiteSpace(tokens.RequestToken))
+        {
+            return BadRequest("Failed to generate CSRF tokens.");
+        }
+
+        HttpContext.Response.Cookies.Append(
+            "Utapoi-Token",
+            result.Value.Token,
+            new CookieOptions
             {
-                ExpiresUtc = DateTime.UtcNow.AddDays(1),
-                IsPersistent = true,
-                AllowRefresh = true,
-                IssuedUtc = DateTime.UtcNow,
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                IsEssential = true,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
             }
         );
 
@@ -76,47 +99,26 @@ public class AuthController : ApiControllerBase
             return BadRequest(result.Errors.First().Message);
         }
 
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            CreateClaims(result.Value),
-            new AuthenticationProperties
+        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+
+        if (string.IsNullOrWhiteSpace(tokens.RequestToken))
+        {
+            return BadRequest("Failed to generate CSRF tokens.");
+        }
+
+        HttpContext.Response.Cookies.Append(
+            "Utapoi-Token",
+            result.Value.Token,
+            new CookieOptions
             {
-                ExpiresUtc = DateTime.UtcNow.AddDays(1),
-                IsPersistent = true,
-                AllowRefresh = true,
-                IssuedUtc = DateTime.UtcNow,
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
             }
         );
 
         // TODO: Redirect to the page from the query.
         return Ok(result.Value.Id);
-    }
-
-    private static ClaimsPrincipal CreateClaims(LogIn.Response response)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, response.Id.ToString()),
-            new(ClaimTypes.Name, response.Username),
-            new(ClaimTypes.Email, response.Email)
-        };
-
-        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        return new ClaimsPrincipal(claimsIdentity);
-    }
-
-    private static ClaimsPrincipal CreateClaims(Register.Response response)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, response.Id.ToString()),
-            new(ClaimTypes.Name, response.Username),
-            new(ClaimTypes.Email, response.Email)
-        };
-
-        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        return new ClaimsPrincipal(claimsIdentity);
     }
 }

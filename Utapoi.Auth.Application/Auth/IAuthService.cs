@@ -9,6 +9,7 @@ public interface IAuthService
     Task<Result<LogIn.Response>> LogInAsync(
         string username,
         string password,
+        string ipAddress,
         CancellationToken cancellationToken = default
     );
 

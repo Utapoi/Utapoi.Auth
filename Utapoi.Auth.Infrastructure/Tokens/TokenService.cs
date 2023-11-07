@@ -13,6 +13,7 @@ using Utapoi.Auth.Application.Tokens;
 using Utapoi.Auth.Application.Tokens.Commands.GetRefreshToken;
 using Utapoi.Auth.Application.Tokens.Commands.GetToken;
 using Utapoi.Auth.Core.Entities;
+using Utapoi.Auth.Core.Entities.Identity;
 using Utapoi.Auth.Infrastructure.Extensions;
 using Utapoi.Auth.Infrastructure.Options.JWT;
 using Utapoi.Auth.Infrastructure.Persistence;
@@ -32,7 +33,7 @@ public struct TokenResponse
 
 public class TokenService : ITokenService
 {
-    private readonly UtapoiAuthDbContext _context;
+    private readonly UtapoiDbContext _context;
 
     private readonly JwtOptions _jwtOptions;
 
@@ -43,16 +44,46 @@ public class TokenService : ITokenService
     /// </summary>
     /// <param name="userManager">The <see cref="UserManager{TUser}" />.</param>
     /// <param name="jwtOptions">The <see cref="JwtOptions" />.</param>
-    /// <param name="context">The <see cref="UtapoiAuthDbContext" />.</param>
+    /// <param name="context">The <see cref="UtapoiDbContext" />.</param>
     public TokenService(
         UserManager<UtapoiUser> userManager,
         IOptions<JwtOptions> jwtOptions,
-        UtapoiAuthDbContext context
+        UtapoiDbContext context
     )
     {
         _userManager = userManager;
         _context = context;
         _jwtOptions = jwtOptions.Value;
+    }
+
+    public Result Validate(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(SHA512.HashData(Encoding.UTF8.GetBytes(_jwtOptions.Key))),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = _jwtOptions.ValidAudience,
+            ValidIssuer = _jwtOptions.ValidIssuer,
+            RoleClaimType = ClaimTypes.Role,
+            ClockSkew = TimeSpan.Zero,
+            ValidateLifetime = false
+        };
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+
+        if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+            !jwtSecurityToken.Header.Alg.Equals(
+                SecurityAlgorithms.HmacSha256,
+                StringComparison.InvariantCultureIgnoreCase))
+        {
+            return Result.Fail("Token Validation failed.");
+        }
+
+        return principal != null
+            ? Result.Ok()
+            : Result.Fail("Token Validation failed.");
     }
 
     public async Task<Result<GetToken.Response>> GetTokenAsync(
@@ -180,8 +211,8 @@ public class TokenService : ITokenService
     {
         token = _context.Tokens
             .FirstOrDefault(
-                x => x.UserId == user.Id
-                     && x.IpAddress == ipAddress
+                x => x.UserId.Equals(user.Id)
+                     && x.IpAddress.Equals(ipAddress)
                      && x.ExpiresAt >= DateTime.UtcNow
             );
 
@@ -195,12 +226,11 @@ public class TokenService : ITokenService
     )
     {
         refreshToken = _context.RefreshTokens
-            .Include(x => x.AccessToken)
             .FirstOrDefault(
-                x => x.UserId == user.Id
-                     && x.IpAddress == ipAddress
+                x => x.UserId.Equals(user.Id)
+                     && x.IpAddress.Equals(ipAddress)
                      && x.ExpiresAt >= DateTime.UtcNow
-                     && x.UsageCount == 0
+                     && x.UsageCount.Equals(0)
             );
 
         return refreshToken != null;

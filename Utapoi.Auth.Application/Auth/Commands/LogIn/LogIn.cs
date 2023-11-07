@@ -19,6 +19,7 @@ public static partial class LogIn
             return _authService.LogInAsync(
                 request.Username,
                 request.Password,
+                request.IpAddress,
                 cancellationToken
             );
         }

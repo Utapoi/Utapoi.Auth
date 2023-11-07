@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -7,9 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Utapoi.Auth.Application.Auth;
+using Utapoi.Auth.Application.Identity;
 using Utapoi.Auth.Application.Tokens;
-using Utapoi.Auth.Core.Entities;
+using Utapoi.Auth.Core.Entities.Identity;
 using Utapoi.Auth.Infrastructure.Auth;
+using Utapoi.Auth.Infrastructure.Identity;
 using Utapoi.Auth.Infrastructure.Options.JWT;
 using Utapoi.Auth.Infrastructure.Persistence;
 using Utapoi.Auth.Infrastructure.Tokens;
@@ -22,46 +25,43 @@ public static class DependencyInjection
     {
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IUserEmailStore<UtapoiUser>, UserStore<UtapoiUser, IdentityRole<Guid>, UtapoiAuthDbContext, Guid>>();
+        services.AddScoped<IUsersService, UsersService>();
+        services.AddScoped<IUserEmailStore<UtapoiUser>, UserStore<UtapoiUser, UtapoiRole, UtapoiDbContext, Guid>>();
 
         services.AddOptions<JwtOptions>()
             .BindConfiguration($"{nameof(JwtOptions)}")
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddAntiforgery();
+
         services
-            .AddDbContext<UtapoiAuthDbContext>(c =>
+            .AddDbContext<UtapoiDbContext>(c =>
             {
                 c.UseMongoDB(configuration.GetConnectionString("UtapoiAuthDb")!, "UtapoiAuthDb");
             });
 
         services
-            .AddIdentity<UtapoiUser, IdentityRole<Guid>>(c =>
+            .AddIdentityCore<UtapoiUser>(c =>
             {
+
                 c.SignIn.RequireConfirmedAccount = false;
                 c.SignIn.RequireConfirmedEmail = false;
 
                 c.User.RequireUniqueEmail = true;
                 c.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
             })
-            .AddEntityFrameworkStores<UtapoiAuthDbContext>()
+            .AddRoles<UtapoiRole>()
+            .AddEntityFrameworkStores<UtapoiDbContext>()
             .AddDefaultTokenProviders()
-            .AddUserStore<UserStore<UtapoiUser, IdentityRole<Guid>, UtapoiAuthDbContext, Guid>>()
+            .AddUserStore<UtapoiUserStore<UtapoiUser, UtapoiRole, UtapoiDbContext, Guid>>()
+            .AddRoleManager<RoleManager<UtapoiRole>>()
+            .AddRoleStore<RoleStore<UtapoiRole, UtapoiDbContext, Guid>>()
             .AddSignInManager();
 
         services
-            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(c =>
-            {
-                c.Cookie.Name = "UtapoiAuth";
-                c.Cookie.Domain = ".utapoi.com";
-                c.Cookie.HttpOnly = true;
-                c.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                c.Cookie.SameSite = SameSiteMode.Strict;
-
-                c.ExpireTimeSpan = TimeSpan.FromHours(2);
-                c.SlidingExpiration = true;
-            });
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddScheme<JwtBearerOptions, UtapoiJwtBearerHandler>(JwtBearerDefaults.AuthenticationScheme, _ => { });
 
         services.AddAuthorization();
 

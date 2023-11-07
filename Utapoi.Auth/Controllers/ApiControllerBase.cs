@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Utapoi.Auth.Controllers;
@@ -34,5 +35,20 @@ public class ApiControllerBase : ControllerBase
     protected string GetIpAddressFromRequest()
     {
         return Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the Id of the user that made the request.
+    /// </summary>
+    /// <returns>
+    /// The Id of the user that made the request.
+    /// </returns>
+    protected Guid GetCurrentUserId()
+    {
+        var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return string.IsNullOrWhiteSpace(userId)
+            ? Guid.Empty
+            : Guid.Parse(userId);
     }
 }
