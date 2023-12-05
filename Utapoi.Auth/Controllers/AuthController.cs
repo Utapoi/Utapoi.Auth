@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Utapoi.Auth.Application.Auth.Commands.LogIn;
 using Utapoi.Auth.Application.Auth.Commands.Register;
+using Utapoi.Auth.Attributes;
 using Utapoi.Auth.Requests;
 
 namespace Utapoi.Auth.Controllers;
@@ -19,7 +18,7 @@ public class AuthController : ApiControllerBase
     }
 
     [HttpGet("Verify")]
-    [Authorize]
+    [UtapoiAuthorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ValidateAsync()
